@@ -1,0 +1,11 @@
+To create a requirements.txt file with only the high-level packages (i.e., the packages you explicitly installed, not their dependencies), you can use the pipreqs tool. This tool generates a requirements.txt file based on the imports in your project files.
+
+Here are the steps to do this:
+
+Install pipreqs:
+    pip install pipreqs
+Generate requirements.txt: Navigate to the root directory of your project and run:
+    pipreqs . --force
+The --force flag will overwrite any existing requirements.txt file.
+
+This will create a requirements.txt file in the current directory with only the high-level packages based on the imports in your project files.

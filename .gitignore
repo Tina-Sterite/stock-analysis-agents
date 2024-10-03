@@ -36,6 +36,12 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
+# original_files, log files, crew_results, *OLD
+original_files/
+log_files/
+crew_results/
+*OLD
+
 # Unit test / coverage reports
 htmlcov/
 .tox/

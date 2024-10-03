@@ -1,3 +1,5 @@
+#did not find this yf_news_tool.py used anywhere in the application. leaving this in the original_files folder
+
 from langchain_community.tools.yahoo_finance_news import YahooFinanceNewsInput
 from crewai_tools import tool
 

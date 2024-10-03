@@ -8,22 +8,30 @@ from langchain_community.tools.yahoo_finance_news import YahooFinanceNewsTool
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
-
-
-
+import sys
+from contextlib import redirect_stdout
+from datetime import datetime
+import markdown2
+from weasyprint import HTML
+from weasyprint.text.fonts import FontConfiguration
+import agentops
 
 # Environment Variables
 load_dotenv()
+
+# Set USER_AGENT environment variable if not already set
+USER_AGENT = os.getenv("USER_AGENT")
+
 os.environ["SERPER_API_KEY"] = os.getenv("SERPER_API_KEY")
 os.environ["REDDIT_CLIENT_ID"] = os.getenv("REDDIT_CLIENT_ID")
 os.environ["REDDIT_CLIENT_SECRET"] = os.getenv("REDDIT_CLIENT_SECRET")
 os.environ["REDDIT_USER_AGENT"] = os.getenv("REDDIT_USER_AGENT")
+os.environ["AGENTOPS_API_KEY"] = os.getenv("AGENTOPS_API_KEY")
+agentops_api_key=os.getenv("AGENTOPS_API_KEY")
 
 # Model Selection
 def initialize_llm(model_option, openai_api_key, groq_api_key):
-    if model_option == 'OpenAI GPT-4o':
-        return ChatOpenAI(openai_api_key=openai_api_key, model='gpt-4o', temperature=0.1)
-    elif model_option == 'OpenAI GPT-4o Mini':
+    if model_option == 'OpenAI GPT-4o Mini':
         return ChatOpenAI(openai_api_key=openai_api_key, model='gpt-4o-mini', temperature=0.1)
     elif model_option == 'Llama 3 8B':
         return ChatGroq(groq_api_key=groq_api_key, model='llama3-8b-8192', temperature=0.1)
@@ -34,14 +42,15 @@ def initialize_llm(model_option, openai_api_key, groq_api_key):
     else:
         raise ValueError("Invalid model option selected")
 
-def create_crew(stock_symbol, model_option, openai_api_key, groq_api_key):
+def create_crew(stock_symbol, model_option, openai_api_key, groq_api_key, console_output_file_path):
+    agentops.init(agentops_api_key)
     llm = initialize_llm(model_option, openai_api_key, groq_api_key)
     # Tools Initialization
     reddit_tool = reddit_sentiment_analysis
     serper_tool = SerperDevTool()
     yf_tech_tool = yf_tech_analysis
     yf_fundamental_tool = yf_fundamental_analysis
-
+    
     # Agents Definitions
     researcher = Agent(
         role='Senior Stock Market Researcher',
@@ -150,7 +159,7 @@ def create_crew(stock_symbol, model_option, openai_api_key, groq_api_key):
         agent=reporter
     )
 
-    # Crew Definition and Kickoff for Result
+    # Create the crew and kickoff
     crew = Crew(
         agents=[researcher, technical_analyst, fundamental_analyst, reporter],
         tasks=[research_task, technical_analysis_task, fundamental_analysis_task, report_task],
@@ -158,12 +167,42 @@ def create_crew(stock_symbol, model_option, openai_api_key, groq_api_key):
         cache=True
     )
 
-    result = crew.kickoff(inputs={'stock_symbol': stock_symbol})
-
-    os.makedirs('./crew_results', exist_ok=True)
-    file_path = f"./crew_results/crew_result_{stock_symbol}.md"
-    result_str = str(result)
-    with open(file_path, 'w') as file:
-        file.write(result_str)
+    # Use contextlib.redirect_stdout to capture both the result and the console output
+    with open(console_output_file_path, 'w', encoding='utf-8') as f:
+        with redirect_stdout(f):
+            result = crew.kickoff(inputs={'stock_symbol': stock_symbol})
+            agentops.end_session('Success')
+                
+    # Append usage details to the log file
+    with open(console_output_file_path, 'a', encoding='utf-8') as f:
+        f.write('\nUsage Details:\n')
+        f.write(f'Prompt Tokens: {result.token_usage["prompt_tokens"]}\n')
+        f.write(f'Completion Tokens: {result.token_usage["completion_tokens"]}\n')
+        f.write(f'Total Tokens: {result.token_usage["total_tokens"]}\n')
     
-    return file_path
+    #  response_content = result.choices[0].message.content
+    
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    
+    # Save the result to a separate file
+    crew_result_file_path = f"./crew_results/{stock_symbol}_Stock_Report_{current_date}.md"
+    with open(crew_result_file_path, 'w', encoding='utf-8') as file:
+        file.write(str(result))
+        
+    
+    # Convert the Markdown content to HTML
+    html_content = markdown2.markdown_path(crew_result_file_path)
+
+    # Save the HTML content to a temporary HTML file
+    crew_result_file_path_html = f"./crew_results/{stock_symbol}_Stock_Report_{current_date}.html"
+    with open(crew_result_file_path_html, 'w', encoding='utf-8') as file:
+        file.write(html_content)
+
+    # Create a FontConfiguration instance
+    font_config = FontConfiguration()
+
+    # Convert the HTML file to PDF
+    crew_result_file_path_pdf = f"./crew_results/{stock_symbol}_Stock_Report_{current_date}.pdf"
+    HTML(crew_result_file_path_html).write_pdf(crew_result_file_path_pdf, font_config=font_config)
+        
+    return crew_result_file_path, crew_result_file_path_pdf

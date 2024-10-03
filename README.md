@@ -5,6 +5,19 @@
 ## 🌟 Overview
 **Professional Stock Analysis Dashboard** is a web application that allows users to analyze stocks using advanced machine learning models and financial tools. The application provides detailed insights into stock performance, technical analysis, fundamental analysis, and sentiment analysis from various sources.
 
+Cloned from: https://github.com/YBSener/financial_Agent.git
+Thank you for a fun project Batuhan!
+
+## Enhancements Made
+- wrote the terminal messaging to a log file into the log_files folder
+- renamed and saved the crew results also as PDF (using weasyprint)
+- api token usage logging (using agentops)
+- passing of openai api key so that it does not need to be entered into the streamlit app
+- removed ChatGPT 4o as an option
+- added a USER_AGENT to stop the errors about it
+- expanded on Installation instructions
+- modified yf_fundamental_analysis_tool.py to remove FutureWarning re: Series.fillna method
+
 ## ✨ Features
 - **📈 Interactive Stock Chart**: Visualize stock price data along with key technical indicators.
 - **📊 Comprehensive Stock Analysis**: Get detailed reports on stock performance, including technical and fundamental analysis.
@@ -14,23 +27,20 @@
 ## 🚀 Installation
 
 ### Prerequisites
-- Python 3.7+
-- Streamlit
-- yFinance
-- Plotly
-- Langchain
-- Praw
-- CrewAI
-- Required API keys
+- see #2 below and the Requirements.txt file.
+- Required API keys see #3 below
 
 ### Setup
 1. Clone the repository:
-    ```sh
+    ```
     git clone https://github.com/YBSener/financial_Agent.git
+    
     cd financial_Agent
     ```
 2. Install the required Python packages:
-    ```sh
+    ```
+    conda create -n financial python=3.9 conda pip ipykernel streamlit markdown2 weasyprint 
+    conda activate financial
     pip install -r requirements.txt
     ```
 
@@ -39,17 +49,25 @@
     ```env
     SERPER_API_KEY=your_serper_api_key
     OPENAI_API_KEY=your_openai_api_key
-    REDDIT_CLIENT_ID=your_reddit_client_id
-    REDDIT_CLIENT_SECRET=your_reddit_client_secret
-    REDDIT_USER_AGENT=your_reddit_user_agent
+    REDDIT_CLIENT_ID=your_reddit_client_id (under the header - project name, web app, then this id)
+    REDDIT_CLIENT_SECRET=your_reddit_client_secret (clearly labelled "secret")
+    REDDIT_USER_AGENT=your_reddit_user_agent (name of the app/project you entered into the Reddit site)
     GROQ_API_KEY=your_groq_api_key
+    AGENTOPS_API_KEY=your_agentops_api_key
+    USER_AGENT=your_user_agent_text
     ```
+    3a. where to get API keys
+    REDDIT: https://www.reddit.com/prefs/apps
+    SERPER: https://serper.dev/dashboard
+    OPENAI: https://platform.openai.com/api-keys
+    GROQ: https://console.groq.com/keys
+    AGENTOPS: https://app.agentops.ai/settings/projects
 
 ## 🛠️ Usage
 
 ### Running the Application
 1. Start the Streamlit app:
-    ```sh
+    ```
     streamlit run app.py
     ```
 
@@ -64,7 +82,7 @@
 
 ### Application Structure
 - `app.py`: Contains the Streamlit application code for the user interface.
-- `main.py`: Defines the CrewAI agents, tasks, and processes for generating stock analysis reports.
+- `crew.py`: Defines the CrewAI agents, tasks, and processes for generating stock analysis reports.
 - `tools/`: Contains custom tools for sentiment analysis and financial data retrieval.
 
 ## 📊 Example Output

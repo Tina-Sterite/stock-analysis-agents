@@ -2,6 +2,10 @@ import yfinance as yf
 import pandas as pd
 from datetime import datetime
 from crewai_tools import tool
+import logging
+
+# Import the logger
+from logger import logger
 
 @tool
 def yf_fundamental_analysis(ticker: str):
@@ -15,7 +19,12 @@ def yf_fundamental_analysis(ticker: str):
             dict: A dictionary with the detailed fundamental analysis results.
     """
     try:
+        # Create a ticker object, execute the API call
         stock = yf.Ticker(ticker)
+        
+        # Log token usage
+        logger.info(f"Yahoo Finance API Token Used: {yf.__version__[:5]}...")
+        
         info = stock.info
         
         # Data processing
@@ -51,13 +60,8 @@ def yf_fundamental_analysis(ticker: str):
         # Growth Rates
         revenue = financials.loc['Total Revenue']
         net_income = financials.loc['Net Income']
-        
-        # Fill NA values before calling pct_change
-        revenue = revenue.ffill()
-        net_income = net_income.ffill()
-        
-        revenue_growth = revenue.pct_change(periods=-1, fill_method=None).iloc[0] if len(revenue) > 1 else None
-        net_income_growth = net_income.pct_change(periods=-1, fill_method=None).iloc[0] if len(net_income) > 1 else None
+        revenue_growth = revenue.pct_change(periods=-1).iloc[0] if len(revenue) > 1 else None
+        net_income_growth = net_income.pct_change(periods=-1).iloc[0] if len(net_income) > 1 else None
 
         growth_rates = {
             "Revenue Growth (YoY)": revenue_growth,
@@ -124,5 +128,6 @@ def yf_fundamental_analysis(ticker: str):
         return analysis
 
     except Exception as e:
-        return f"An error occurred during the analysis: {str(e)}"
+        logger.error(f"Error in yf_fundamental_analysis: {str(e)}")
+        return f"An error occurred during analysis: {str(e)}"
 

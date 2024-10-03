@@ -1,0 +1,4 @@
+name: financial
+channels:
+  - defaults
+prefix: C:\ProgramData\Anaconda3\envs\financial\envs\financial

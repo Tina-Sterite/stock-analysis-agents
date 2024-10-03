@@ -1,11 +1,21 @@
-__import__('pysqlite3')
+#__import__('pysqlite3')
+import sqlite3
 import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+#sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 import streamlit as st
 import yfinance as yf
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 from crew import create_crew
+import os
+from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Set USER_AGENT environment variable if not already set
+USER_AGENT = os.getenv("USER_AGENT")
 
 st.set_page_config(layout="wide", page_title="Stock Analysis Agent", initial_sidebar_state="expanded")
 
@@ -49,14 +59,16 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Model selection
-model_option = st.sidebar.selectbox("Select LLM Model", ['OpenAI GPT-4o','OpenAI GPT-4o Mini', 'Llama 3 8B', 'Llama 3.1 70B', 'Llama 3.1 8B'])
+model_option = st.sidebar.selectbox("Select LLM Model", ['OpenAI GPT-4o Mini', 'Llama 3 8B', 'Llama 3.1 70B', 'Llama 3.1 8B'])
 
 # User API key inputs based on model selection
-if model_option in ['OpenAI GPT-4o', 'OpenAI GPT-4o Mini']:
-    openai_api_key = st.sidebar.text_input("Enter OpenAI API Key", type="password")
+if model_option in ['OpenAI GPT-4o Mini']:
+    #openai_api_key = st.sidebar.text_input("Enter OpenAI API Key", type="password")
+    openai_api_key = os.getenv('OPENAI_API_KEY')
     groq_api_key = None
 else:
-    groq_api_key = st.sidebar.text_input("Enter Groq API Key", type="password")
+    #groq_api_key = st.sidebar.text_input("Enter Groq API Key", type="password")
+    groq_api_key = os.getenv('GROQ_API_KEY')
     openai_api_key = None
 
 stock_symbol = st.sidebar.text_input("Enter Stock Symbol", value="AAPL")
@@ -69,7 +81,7 @@ if 'analyzed' not in st.session_state:
     st.session_state.analyzed = False
     st.session_state.stock_info = None
     st.session_state.stock_data = None
-    st.session_state.result_file_path = None
+    st.session_state.crew_result_file_path = None
 
 def get_stock_data(stock_symbol, period='1y'):
     return yf.download(stock_symbol, period=period)
@@ -136,7 +148,9 @@ def plot_stock_chart(stock_data, indicators):
 
 if analyze_button:
     st.session_state.analyzed = False  # Reset analyzed state
-    st.snow()
+    #st.snow()
+    st.balloons()
+    #st.toast()
 
     
     # Fetch stock info and data
@@ -145,11 +159,17 @@ if analyze_button:
         st.session_state.stock_info = stock.info
         st.session_state.stock_data = get_stock_data(stock_symbol, period=time_period)
 
+    current_date = datetime.now().strftime("%Y-%m-%d")
+
     # Create and run the crew
     with st.spinner("Running analysis, please wait..."):
-        
-        st.session_state.result_file_path = create_crew(stock_symbol, model_option, openai_api_key, groq_api_key)
-    
+        crew_result_file_path, crew_result_file_path_pdf = create_crew(stock_symbol,                                                                 
+                                            model_option, 
+                                            openai_api_key, 
+                                            groq_api_key, 
+                                            f"./log_files/{stock_symbol}_console_runlog_{current_date}.log")
+        st.session_state.crew_result_file_path = crew_result_file_path
+        st.session_state.crew_result_file_path_pdf = crew_result_file_path_pdf
     st.session_state.analyzed = True
 
 # Display stock info if available
@@ -168,11 +188,11 @@ if st.session_state.stock_info:
         st.markdown(f"**Market Cap:** ${info.get('marketCap', 'N/A')}")
 
 # Display CrewAI result if available
-if st.session_state.result_file_path:
+if st.session_state.crew_result_file_path:
     st.markdown('<p class="medium-font">Analysis Result</p>', unsafe_allow_html=True)
     
     
-    with open(st.session_state.result_file_path, 'r') as file:
+    with open(st.session_state.crew_result_file_path, 'r') as file:
         result = file.read()
     
     
